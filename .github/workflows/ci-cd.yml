@@ -1,35 +1,20 @@
-name: Debug Secrets Only
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:  # позволяет запускать вручную
 
 jobs:
-  debug-all:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Check Secrets Status
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      
+      - name: Build and push
         run: |
-          echo "========== СТАТУС СЕКРЕТОВ =========="
-          echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME != '' && '✅ УСТАНОВЛЕН' || '❌ ОТСУТСТВУЕТ' }}"
-          echo "DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD != '' && '✅ УСТАНОВЛЕН' || '❌ ОТСУТСТВУЕТ' }}"
-          echo ""
-          echo "========== ИНФОРМАЦИЯ О СИСТЕМЕ =========="
-          echo "GitHub Actor: ${{ github.actor }}"
-          echo "GitHub Ref: ${{ github.ref }}"
-          echo "GitHub Event: ${{ github.event_name }}"
-          echo ""
-          echo "========== ПРОВЕРКА DOCKER =========="
-          docker --version
-          echo ""
-          echo "========== ПРОБНЫЙ ЛОГИН (без реальной отправки) =========="
-          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ]; then
-            echo "Пытаюсь залогиниться..."
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin && echo "✅ Логин успешен!" || echo "❌ Логин провалился"
-          else
-            echo "Секреты не установлены, пропускаю логин"
-          fi
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/my-devops-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/my-devops-app:latest
